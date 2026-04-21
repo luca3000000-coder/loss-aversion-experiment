@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Teilnehmen · Loss Aversion</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="participant">
+  <main class="container narrow">
+
+    <!-- JOIN SCREEN -->
+    <section id="screen-join" class="screen">
+      <h1>Mitmachen</h1>
+      <p class="subtitle">Gib einen Spitznamen ein, um am Experiment teilzunehmen.</p>
+      <form id="join-form" class="form">
+        <label for="nickname">Dein Spitzname</label>
+        <input id="nickname" type="text" maxlength="24" autocomplete="off" autocapitalize="off" required placeholder="z.B. Anna" />
+        <button type="submit" class="btn btn-primary">Beitreten</button>
+        <p id="join-error" class="error" hidden></p>
+      </form>
+    </section>
+
+    <!-- LOBBY / WAITING SCREEN -->
+    <section id="screen-lobby" class="screen" hidden>
+      <div class="balance-bar">
+        <span class="balance-label">Guthaben</span>
+        <span id="balance" class="balance-amount">100 €</span>
+      </div>
+      <div class="status-box">
+        <div class="spinner"></div>
+        <h2 id="lobby-title">Du bist dabei!</h2>
+        <p id="lobby-text">Warte, bis die Präsentation startet.</p>
+      </div>
+      <div class="meta">
+        <span id="lobby-count">0</span> Teilnehmer:innen · <span id="lobby-nickname">–</span>
+      </div>
+    </section>
+
+    <!-- DECISION SCREEN -->
+    <section id="screen-decide" class="screen" hidden>
+      <div class="balance-bar">
+        <span class="balance-label">Guthaben</span>
+        <span id="balance-decide" class="balance-amount">100 €</span>
+      </div>
+
+      <div class="round-indicator">
+        <span>Runde <strong id="round-num">1</strong> von 6</span>
+        <span class="round-type" id="round-type-badge">Gewinn</span>
+      </div>
+
+      <h1 id="decision-headline">Triff deine Entscheidung</h1>
+      <p id="decision-sub" class="subtitle">Wähle zwischen sicherem Gewinn und Risiko.</p>
+
+      <div class="options">
+        <button id="btn-safe" class="option option-safe" type="button">
+          <span class="option-label">Sicher</span>
+          <span class="option-amount" id="safe-amount">+20 €</span>
+          <span class="option-hint">Garantiert</span>
+        </button>
+        <button id="btn-risk" class="option option-risk" type="button">
+          <span class="option-label">Risiko</span>
+          <span class="option-amount" id="risk-amount">+40 €</span>
+          <span class="option-hint">50% Chance · sonst 0 €</span>
+        </button>
+      </div>
+
+      <div id="decision-confirmed" class="confirmed" hidden>
+        <div class="check">✓</div>
+        <p>Deine Wahl: <strong id="chosen-label">–</strong></p>
+        <p class="subtitle">Warte auf den Münzwurf …</p>
+      </div>
+    </section>
+
+    <!-- AWAITING FLIP -->
+    <section id="screen-flip" class="screen" hidden>
+      <div class="balance-bar">
+        <span class="balance-label">Guthaben</span>
+        <span id="balance-flip" class="balance-amount">100 €</span>
+      </div>
+      <div class="status-box">
+        <div class="coin-animation">🪙</div>
+        <h2>Münzwurf läuft …</h2>
+        <p>Die Präsentierenden werfen im Raum die Münze.</p>
+      </div>
+    </section>
+
+    <!-- ROUND RESULT -->
+    <section id="screen-result" class="screen" hidden>
+      <div class="balance-bar">
+        <span class="balance-label">Guthaben</span>
+        <span id="balance-result" class="balance-amount">100 €</span>
+      </div>
+      <div class="result-box">
+        <div id="result-icon" class="result-icon">💰</div>
+        <h2 id="result-title">Dein Rundenergebnis</h2>
+        <p class="result-outcome" id="result-outcome">+20 €</p>
+        <p class="subtitle" id="result-detail">Du hast 'Sicher' gewählt.</p>
+        <p class="result-flip" id="result-flip"></p>
+      </div>
+      <p class="subtitle center">Warte auf die nächste Runde …</p>
+    </section>
+
+    <!-- FINISHED -->
+    <section id="screen-finished" class="screen" hidden>
+      <div class="balance-bar final">
+        <span class="balance-label">Endguthaben</span>
+        <span id="balance-final" class="balance-amount">100 €</span>
+      </div>
+      <div class="status-box">
+        <div class="trophy">🏁</div>
+        <h2>Experiment beendet</h2>
+        <p>Danke fürs Mitmachen! Die Auswertung siehst du auf dem Beamer.</p>
+        <div id="personal-summary" class="summary"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/participant.js"></script>
+</body>
+</html>

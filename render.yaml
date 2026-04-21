@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: loss-aversion-experiment
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: PRESENTER_PASSWORD
+        generateValue: true
