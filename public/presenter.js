@@ -18,14 +18,18 @@ loginForm.addEventListener('submit', (e) => {
   e.preventDefault();
   loginError.hidden = true;
   socket.emit('presenter_join', { password: pwInput.value }, (res) => {
-    if (!res.ok) {
-      loginError.textContent = 'Falsches Passwort.';
-      loginError.hidden = false;
-      return;
+    try {
+      if (!res || !res.ok) {
+        loginError.textContent = 'Falsches Passwort.';
+        loginError.hidden = false;
+        return;
+      }
+      screens.login.hidden = true;
+      screens.dashboard.hidden = false;
+      try { sessionStorage.setItem('presenter', '1'); } catch (_) {}
+    } catch (err) {
+      alert('Login-Fehler: ' + (err && err.message));
     }
-    sessionStorage.setItem('presenter', '1');
-    screens.login.hidden = true;
-    screens.dashboard.hidden = false;
   });
 });
 
@@ -80,9 +84,7 @@ socket.on('presenter_update', (d) => {
   render();
 });
 
-socket.on('state_update', () => {
-  // presenter_update covers everything, nothing extra to do here
-});
+socket.on('state_update', () => {});
 
 // --- Render ---
 const ROUND_COUNT = 6;
@@ -93,7 +95,6 @@ function render() {
 
   document.getElementById('participant-count').textContent = d.participantCount;
 
-  // Phase badge
   const badge = document.getElementById('phase-badge');
   const phaseLabels = {
     lobby: 'Lobby',
@@ -105,7 +106,6 @@ function render() {
   badge.textContent = phaseLabels[d.phase] || d.phase;
   badge.className = 'phase-badge phase-' + d.phase;
 
-  // Round header
   const roundDisplay = document.getElementById('round-display');
   const roundTypeDisplay = document.getElementById('round-type-display');
   const roundDetails = document.getElementById('round-details');
@@ -128,7 +128,6 @@ function render() {
       : '<p class="muted">Starte die erste Runde, wenn alle Teilnehmer:innen beigetreten sind.</p>';
   }
 
-  // Control buttons based on phase
   const btnStart = document.getElementById('btn-start-round');
   const btnClose = document.getElementById('btn-close-decisions');
   const coinBox = document.getElementById('coin-flip-box');
@@ -145,9 +144,6 @@ function render() {
     btnStart.hidden = false;
     btnStart.textContent = 'Runde 1 starten';
     btnStart.disabled = d.participantCount === 0;
-    if (d.participantCount === 0) {
-      btnStart.title = 'Warte, bis mindestens ein Teilnehmer beigetreten ist.';
-    }
   } else if (d.phase === 'deciding') {
     btnClose.hidden = false;
     const voted = d.decisionsThisRound.safe + d.decisionsThisRound.risk;
@@ -157,7 +153,6 @@ function render() {
   } else if (d.phase === 'round_done') {
     if (d.currentRoundIndex + 1 >= ROUND_COUNT) {
       btnShowFinal.hidden = false;
-      // also allow going to final via clicking - but first show final panel auto
       document.getElementById('final-panel').hidden = false;
     } else {
       btnNext.hidden = false;
@@ -168,7 +163,6 @@ function render() {
     document.getElementById('final-panel').hidden = false;
   }
 
-  // Live decisions
   const voted = d.decisionsThisRound.safe + d.decisionsThisRound.risk;
   const total = Math.max(voted, d.participantCount);
   const safePct = total > 0 ? Math.round(100 * d.decisionsThisRound.safe / total) : 0;
@@ -177,10 +171,8 @@ function render() {
   document.getElementById('bar-risk').style.width = riskPct + '%';
   document.getElementById('count-safe').textContent = d.decisionsThisRound.safe;
   document.getElementById('count-risk').textContent = d.decisionsThisRound.risk;
-  document.getElementById('decisions-meta').textContent =
-    `${voted} von ${d.participantCount} haben entschieden`;
+  document.getElementById('decisions-meta').textContent = `${voted} von ${d.participantCount} haben entschieden`;
 
-  // Last round text
   if (d.coinFlip && d.phase !== 'deciding' && d.phase !== 'awaiting_flip') {
     const lastBox = document.getElementById('last-round-result');
     lastBox.hidden = false;
@@ -193,10 +185,7 @@ function render() {
     document.getElementById('last-round-result').hidden = true;
   }
 
-  // History grid
   renderHistory(d);
-
-  // Final panel content
   renderFinal(d);
 }
 
@@ -214,8 +203,7 @@ function renderHistory(d) {
         </div>
         <div class="hc-body">
           ${played
-            ? `<div class="hc-pct">${riskPct}% Risiko</div>
-               <div class="hc-sub">${rs.risk} Risiko · ${rs.safe} Sicher</div>`
+            ? `<div class="hc-pct">${riskPct}% Risiko</div><div class="hc-sub">${rs.risk} Risiko · ${rs.safe} Sicher</div>`
             : `<div class="hc-sub muted">—</div>`
           }
         </div>
@@ -269,13 +257,13 @@ function renderInterpretation(gainPct, lossPct, diff) {
   const box = document.getElementById('interpretation-text');
   let verdict;
   if (diff >= 15) {
-    verdict = `<p class="verdict positive"><strong>Klarer Loss-Aversion-Effekt erkennbar.</strong> In Verlustrunden habt ihr ${diff} Prozentpunkte häufiger Risiko gewählt als in Gewinnrunden. Das entspricht den Befunden von Kahneman &amp; Tversky (1979).</p>`;
+    verdict = `<p class="verdict positive"><strong>Klarer Loss-Aversion-Effekt erkennbar.</strong> In Verlustrunden habt ihr ${diff} Prozentpunkte häufiger Risiko gewählt als in Gewinnrunden.</p>`;
   } else if (diff > 0) {
-    verdict = `<p class="verdict"><strong>Tendenz zu Loss Aversion sichtbar.</strong> In Verlustrunden wurde Risiko ${diff} Prozentpunkte häufiger gewählt. Der Effekt ist vorhanden, aber moderat.</p>`;
+    verdict = `<p class="verdict"><strong>Tendenz zu Loss Aversion sichtbar.</strong> In Verlustrunden wurde Risiko ${diff} Prozentpunkte häufiger gewählt.</p>`;
   } else if (diff === 0) {
-    verdict = `<p class="verdict"><strong>Kein Unterschied messbar.</strong> In dieser Stichprobe wurde im Gewinn- und Verlustbereich gleich häufig Risiko gewählt.</p>`;
+    verdict = `<p class="verdict"><strong>Kein Unterschied messbar.</strong></p>`;
   } else {
-    verdict = `<p class="verdict negative"><strong>Atypisches Muster.</strong> Hier wurde im Gewinnbereich häufiger Risiko gewählt — das Gegenteil des Loss-Aversion-Effekts.</p>`;
+    verdict = `<p class="verdict negative"><strong>Atypisches Muster.</strong></p>`;
   }
 
   box.innerHTML = `
@@ -285,7 +273,6 @@ function renderInterpretation(gainPct, lossPct, diff) {
       <li><strong>im Gewinnbereich risikoavers</strong> — der sichere Gewinn wird dem Risiko vorgezogen (<span class="inline-pct">${gainPct}% Risiko</span> bei euch).</li>
       <li><strong>im Verlustbereich risikofreudig</strong> — man nimmt das Risiko in Kauf, um dem sicheren Verlust zu entgehen (<span class="inline-pct">${lossPct}% Risiko</span> bei euch).</li>
     </ul>
-    <p>Dieser <em>Reflection Effect</em> lässt sich anhand eurer Daten gut diskutieren: Obwohl die Erwartungswerte identisch sind, wird je nach Framing (Gewinn vs. Verlust) anders entschieden.</p>
   `;
 }
 
@@ -299,7 +286,6 @@ function drawChart(d) {
   const plotW = W - padding.left - padding.right;
   const plotH = H - padding.top - padding.bottom;
 
-  // Axes
   ctx.strokeStyle = '#cbd5e1';
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -308,7 +294,6 @@ function drawChart(d) {
   ctx.lineTo(padding.left + plotW, padding.top + plotH);
   ctx.stroke();
 
-  // Y ticks (0, 25, 50, 75, 100)
   ctx.fillStyle = '#64748b';
   ctx.font = '12px system-ui, sans-serif';
   ctx.textAlign = 'right';
@@ -322,7 +307,6 @@ function drawChart(d) {
     ctx.stroke();
   }
 
-  // Bars
   const bars = d.roundStats;
   const barW = plotW / bars.length * 0.6;
   const gap = plotW / bars.length;
@@ -337,29 +321,16 @@ function drawChart(d) {
     ctx.fillStyle = rs.round.type === 'gain' ? '#3b82f6' : '#ef4444';
     ctx.fillRect(x, y, barW, h);
 
-    // Label
     ctx.fillStyle = '#0f172a';
     ctx.textAlign = 'center';
     ctx.font = 'bold 13px system-ui, sans-serif';
-    if (total > 0) {
-      ctx.fillText(Math.round(pct * 100) + '%', x + barW / 2, y - 6);
-    }
+    if (total > 0) ctx.fillText(Math.round(pct * 100) + '%', x + barW / 2, y - 6);
 
     ctx.fillStyle = '#64748b';
     ctx.font = '12px system-ui, sans-serif';
     ctx.fillText(`R${rs.round.n}`, x + barW / 2, padding.top + plotH + 18);
     ctx.fillText(rs.round.type === 'gain' ? 'Gewinn' : 'Verlust', x + barW / 2, padding.top + plotH + 34);
   });
-
-  // Y axis title
-  ctx.save();
-  ctx.translate(14, padding.top + plotH / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#475569';
-  ctx.font = '12px system-ui, sans-serif';
-  ctx.fillText('Anteil Risiko-Entscheidungen', 0, 0);
-  ctx.restore();
 }
 
 function renderLeaderboard(d) {
@@ -371,15 +342,7 @@ function renderLeaderboard(d) {
     const totalGain = p.decisions.filter(x => x.type === 'gain').length;
     const totalLoss = p.decisions.filter(x => x.type === 'loss').length;
     const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-    return `
-      <tr>
-        <td>${medal}</td>
-        <td>${escapeHtml(p.nickname)}</td>
-        <td><strong>${p.balance} €</strong></td>
-        <td>${gainRisk} / ${totalGain}</td>
-        <td>${lossRisk} / ${totalLoss}</td>
-      </tr>
-    `;
+    return `<tr><td>${medal}</td><td>${escapeHtml(p.nickname)}</td><td><strong>${p.balance} €</strong></td><td>${gainRisk} / ${totalGain}</td><td>${lossRisk} / ${totalLoss}</td></tr>`;
   }).join('');
 }
 
