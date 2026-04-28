@@ -111,6 +111,7 @@
     <section id="final-panel" class="final-panel" hidden>
       <h2>Gesamt-Auswertung</h2>
 
+      <h3 class="grid-title">Risiko nach Rundentyp <span class="muted small">(Reflection Effect)</span></h3>
       <div class="final-grid">
         <div class="stat-card gain">
           <h3>Gewinnrunden</h3>
@@ -128,6 +129,27 @@
           <h3>Differenz</h3>
           <p class="stat-big" id="diff-value">–</p>
           <p class="muted" id="diff-hint">Loss Aversion Indikator</p>
+        </div>
+      </div>
+
+      <h3 class="grid-title">Risiko nach Kontostand <span class="muted small">(House Money / Break-Even)</span></h3>
+      <div class="final-grid">
+        <div class="stat-card balance-below">
+          <h3>Bei Guthaben &lt; 100 €</h3>
+          <p class="stat-big"><span id="below-risk-pct">0%</span></p>
+          <p class="muted">Risiko gewählt</p>
+          <p class="muted small"><span id="below-risk-count">0</span> von <span id="below-total">0</span> Entscheidungen</p>
+        </div>
+        <div class="stat-card balance-above">
+          <h3>Bei Guthaben &gt; 100 €</h3>
+          <p class="stat-big"><span id="above-risk-pct">0%</span></p>
+          <p class="muted">Risiko gewählt</p>
+          <p class="muted small"><span id="above-risk-count">0</span> von <span id="above-total">0</span> Entscheidungen</p>
+        </div>
+        <div class="stat-card diff">
+          <h3>Differenz</h3>
+          <p class="stat-big" id="balance-diff-value">–</p>
+          <p class="muted" id="balance-diff-hint">House Money / Break-Even</p>
         </div>
       </div>
 
