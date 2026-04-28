@@ -561,6 +561,16 @@ p { margin: 0 0 0.75rem; }
 .stat-card.gain { border-top-color: #3b82f6; }
 .stat-card.loss { border-top-color: #ef4444; }
 .stat-card.diff { border-top-color: #a855f7; }
+.stat-card.balance-below { border-top-color: #f59e0b; }
+.stat-card.balance-above { border-top-color: #10b981; }
+
+.grid-title {
+  color: #cbd5e1;
+  font-size: 0.95rem;
+  margin: 0.25rem 0 0.6rem;
+  font-weight: 600;
+}
+.grid-title .muted { color: #64748b; font-weight: 400; }
 .stat-card h3 { color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
 .stat-big {
   font-size: 2.5rem;
