@@ -291,9 +291,187 @@ function renderFinal(d) {
     }
   }
 
+  drawBalanceChart(d);
   drawChart(d);
   renderInterpretation(gainRiskPct, lossRiskPct, diff);
   renderLeaderboard(d);
+}
+
+function drawBalanceChart(d) {
+  const canvas = document.getElementById('balance-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const padding = { top: 36, right: 110, bottom: 50, left: 64 };
+  const plotW = W - padding.left - padding.right;
+  const plotH = H - padding.top - padding.bottom;
+
+  const N = d.totalRounds;
+
+  // Build trajectories: [start, after R1, after R2, ...]
+  const trajectories = d.participants.map(p => {
+    const balances = [100];
+    const sorted = [...p.decisions].sort((a, b) => a.roundIndex - b.roundIndex);
+    for (const dec of sorted) balances.push(dec.balanceAfter);
+    return { name: p.nickname, balances };
+  });
+
+  const maxStep = Math.max(0, ...trajectories.map(t => t.balances.length - 1));
+
+  if (trajectories.length === 0 || maxStep === 0) {
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '14px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Noch keine Daten – das Diagramm füllt sich nach der ersten Runde.', W / 2, H / 2);
+    return;
+  }
+
+  // Average per step (only over participants who reached that step)
+  const avgBalances = [];
+  for (let step = 0; step <= N; step++) {
+    let sum = 0, count = 0;
+    for (const t of trajectories) {
+      if (t.balances[step] !== undefined) { sum += t.balances[step]; count++; }
+    }
+    avgBalances.push(count > 0 ? sum / count : null);
+  }
+
+  // Y range — include 100€ baseline always
+  let yMin = 100, yMax = 100;
+  for (const t of trajectories) {
+    for (const b of t.balances) {
+      if (b < yMin) yMin = b;
+      if (b > yMax) yMax = b;
+    }
+  }
+  const range = Math.max(yMax - yMin, 40);
+  yMin = Math.floor((yMin - range * 0.1) / 20) * 20;
+  yMax = Math.ceil((yMax + range * 0.1) / 20) * 20;
+
+  const xCoord = step => padding.left + (step / N) * plotW;
+  const yCoord = b => padding.top + plotH - ((b - yMin) / (yMax - yMin)) * plotH;
+
+  // Y grid + labels
+  ctx.font = '12px system-ui, sans-serif';
+  const ySteps = 5;
+  for (let i = 0; i <= ySteps; i++) {
+    const v = yMin + (yMax - yMin) * (i / ySteps);
+    const y = yCoord(v);
+    ctx.strokeStyle = i === 0 ? '#475569' : '#1e293b';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(padding.left + plotW, y);
+    ctx.stroke();
+    ctx.fillStyle = '#94a3b8';
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(v) + ' €', padding.left - 8, y + 4);
+  }
+
+  // 100€ baseline (start) — dashed
+  if (yMin <= 100 && yMax >= 100) {
+    const y100 = yCoord(100);
+    ctx.strokeStyle = '#64748b';
+    ctx.setLineDash([2, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y100);
+    ctx.lineTo(padding.left + plotW, y100);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // X axis labels
+  ctx.fillStyle = '#94a3b8';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= N; i++) {
+    const x = xCoord(i);
+    ctx.fillText(i === 0 ? 'Start' : 'R' + i, x, padding.top + plotH + 18);
+  }
+
+  // Draw each participant's line
+  trajectories.forEach((t, idx) => {
+    const hue = (idx * 360 / Math.max(trajectories.length, 1)) % 360;
+    const color = `hsl(${hue}, 65%, 62%)`;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    t.balances.forEach((b, step) => {
+      const x = xCoord(step);
+      const y = yCoord(b);
+      if (step === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    t.balances.forEach((b, step) => {
+      const x = xCoord(step);
+      const y = yCoord(b);
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+
+    // Name label at end (only if not too crowded)
+    if (trajectories.length <= 15) {
+      const lastStep = t.balances.length - 1;
+      const lx = xCoord(lastStep);
+      const ly = yCoord(t.balances[lastStep]);
+      ctx.fillStyle = color;
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      const truncated = t.name.length > 13 ? t.name.slice(0, 13) + '…' : t.name;
+      ctx.fillText(' ' + truncated, lx + 4, ly + 4);
+    }
+  });
+
+  // Average — thick yellow dashed
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = 3.5;
+  ctx.setLineDash([8, 4]);
+  ctx.beginPath();
+  let started = false;
+  avgBalances.forEach((b, step) => {
+    if (b === null) return;
+    const x = xCoord(step);
+    const y = yCoord(b);
+    if (!started) { ctx.moveTo(x, y); started = true; }
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Find last non-null avg step (no findLastIndex for older browser safety)
+  let lastAvgStep = -1;
+  for (let i = avgBalances.length - 1; i >= 0; i--) {
+    if (avgBalances[i] !== null) { lastAvgStep = i; break; }
+  }
+  if (lastAvgStep >= 0) {
+    const lx = xCoord(lastAvgStep);
+    const ly = yCoord(avgBalances[lastAvgStep]);
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 12px system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(' Ø ' + Math.round(avgBalances[lastAvgStep]) + ' €', lx + 4, ly - 8);
+  }
+
+  // Top-left legend
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = 'bold 12px system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('— — Durchschnitt (gestrichelt)', padding.left, padding.top - 14);
+
+  // Y axis title
+  ctx.save();
+  ctx.translate(18, padding.top + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '12px system-ui, sans-serif';
+  ctx.fillText('Kontostand', 0, 0);
+  ctx.restore();
 }
 
 function renderInterpretation(gainPct, lossPct, diff) {
