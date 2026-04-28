@@ -115,6 +115,12 @@ function render() {
 
   document.getElementById('lobby-count').textContent = s.participantCount;
 
+  // Update total rounds display (e.g. "Runde 1 von X")
+  const roundTotalEl = document.getElementById('round-total');
+  if (roundTotalEl && s.totalRounds) {
+    roundTotalEl.textContent = s.totalRounds;
+  }
+
   if (s.phase === 'lobby') {
     showScreen('lobby');
     document.getElementById('lobby-title').textContent = 'Du bist dabei!';
@@ -232,11 +238,14 @@ function renderFinished() {
   const gainRisk = p.decisions.filter(d => d.type === 'gain' && d.choice === 'risk').length;
   const lossRisk = p.decisions.filter(d => d.type === 'loss' && d.choice === 'risk').length;
   const totalPL = p.balance - 100;
+  const totalRounds = (latestState && latestState.totalRounds) || p.decisions.length || 6;
+  const gainRounds = p.decisions.filter(d => d.type === 'gain').length || Math.floor(totalRounds / 2);
+  const lossRounds = p.decisions.filter(d => d.type === 'loss').length || Math.floor(totalRounds / 2);
 
   summary.innerHTML = `
     <div class="summary-row"><span>Gesamt-Gewinn/Verlust</span><strong class="${totalPL >= 0 ? 'pos' : 'neg'}">${totalPL >= 0 ? '+' : ''}${totalPL} €</strong></div>
-    <div class="summary-row"><span>Risiko-Entscheidungen</span><strong>${riskCount} / 6</strong></div>
-    <div class="summary-row"><span>davon in Gewinnrunden</span><strong>${gainRisk} / 3</strong></div>
-    <div class="summary-row"><span>davon in Verlustrunden</span><strong>${lossRisk} / 3</strong></div>
+    <div class="summary-row"><span>Risiko-Entscheidungen</span><strong>${riskCount} / ${totalRounds}</strong></div>
+    <div class="summary-row"><span>davon in Gewinnrunden</span><strong>${gainRisk} / ${gainRounds}</strong></div>
+    <div class="summary-row"><span>davon in Verlustrunden</span><strong>${lossRisk} / ${lossRounds}</strong></div>
   `;
 }
