@@ -291,6 +291,56 @@ function renderFinal(d) {
     }
   }
 
+  // Balance-zone KPIs: split decisions by participant's balance BEFORE the decision
+  // Decisions where balanceBefore == 100 are excluded from both buckets (neutral).
+  let belowSafe = 0, belowRisk = 0, aboveSafe = 0, aboveRisk = 0;
+  for (const p of d.participants) {
+    for (const dec of p.decisions) {
+      const balanceBefore = dec.balanceAfter - dec.outcome;
+      if (balanceBefore < 100) {
+        if (dec.choice === 'risk') belowRisk++; else belowSafe++;
+      } else if (balanceBefore > 100) {
+        if (dec.choice === 'risk') aboveRisk++; else aboveSafe++;
+      }
+    }
+  }
+  const belowTotal = belowSafe + belowRisk;
+  const aboveTotal = aboveSafe + aboveRisk;
+  const belowPct = belowTotal > 0 ? Math.round(100 * belowRisk / belowTotal) : 0;
+  const abovePct = aboveTotal > 0 ? Math.round(100 * aboveRisk / aboveTotal) : 0;
+
+  document.getElementById('below-risk-pct').textContent = belowPct + '%';
+  document.getElementById('above-risk-pct').textContent = abovePct + '%';
+  document.getElementById('below-risk-count').textContent = belowRisk;
+  document.getElementById('below-total').textContent = belowTotal;
+  document.getElementById('above-risk-count').textContent = aboveRisk;
+  document.getElementById('above-total').textContent = aboveTotal;
+
+  const balanceDiff = belowPct - abovePct;
+  const balDiffEl = document.getElementById('balance-diff-value');
+  const balDiffHint = document.getElementById('balance-diff-hint');
+  if (belowTotal === 0 && aboveTotal === 0) {
+    balDiffEl.textContent = '–';
+    balDiffEl.className = 'stat-big';
+    balDiffHint.textContent = 'Noch keine Daten unter/über 100 €';
+  } else if (belowTotal === 0 || aboveTotal === 0) {
+    balDiffEl.textContent = '–';
+    balDiffEl.className = 'stat-big';
+    balDiffHint.textContent = 'Eine Zone hat noch keine Entscheidungen';
+  } else {
+    balDiffEl.textContent = (balanceDiff > 0 ? '+' : '') + balanceDiff + ' %-Pkt.';
+    if (balanceDiff > 0) {
+      balDiffEl.className = 'stat-big diff-positive';
+      balDiffHint.textContent = 'Mehr Risiko in Verlustzone → Break-Even-Effekt';
+    } else if (balanceDiff < 0) {
+      balDiffEl.className = 'stat-big diff-negative';
+      balDiffHint.textContent = 'Mehr Risiko in Gewinnzone → House-Money-Effekt';
+    } else {
+      balDiffEl.className = 'stat-big';
+      balDiffHint.textContent = 'Kein Unterschied';
+    }
+  }
+
   drawBalanceChart(d);
   drawChart(d);
   renderInterpretation(gainRiskPct, lossRiskPct, diff);
