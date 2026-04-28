@@ -20,18 +20,26 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ---------- Experiment configuration ----------
 const STARTING_BALANCE = 100;
-const TOTAL_ROUNDS = 6;
+const DEFAULT_TOTAL_ROUNDS = 6;
+const MIN_TOTAL_ROUNDS = 2;
+const MAX_TOTAL_ROUNDS = 20;
 
-// Each round definition. type: 'gain' | 'loss'
-// safeAmount and riskAmount are positive numbers. Sign is applied via type.
-const ROUNDS = [
-  { n: 1, type: 'gain', safe: 20, risk: 40 },
-  { n: 2, type: 'loss', safe: 20, risk: 40 },
-  { n: 3, type: 'gain', safe: 20, risk: 40 },
-  { n: 4, type: 'loss', safe: 20, risk: 40 },
-  { n: 5, type: 'gain', safe: 20, risk: 40 },
-  { n: 6, type: 'loss', safe: 20, risk: 40 }
-];
+// Build rounds dynamically. Always alternates gain/loss starting with gain.
+function buildRounds(totalRounds) {
+  const list = [];
+  for (let i = 0; i < totalRounds; i++) {
+    list.push({
+      n: i + 1,
+      type: i % 2 === 0 ? 'gain' : 'loss',
+      safe: 20,
+      risk: 40
+    });
+  }
+  return list;
+}
+
+let TOTAL_ROUNDS = DEFAULT_TOTAL_ROUNDS;
+let ROUNDS = buildRounds(TOTAL_ROUNDS);
 
 // ---------- State machine ----------
 // phase values:
@@ -268,6 +276,26 @@ function resetGame() {
   broadcastStateToAll();
 }
 
+function setRoundCount(count) {
+  if (state.phase !== 'lobby') return { ok: false, reason: 'not_in_lobby' };
+  count = Number(count);
+  if (!Number.isInteger(count)
+      || count < MIN_TOTAL_ROUNDS
+      || count > MAX_TOTAL_ROUNDS
+      || count % 2 !== 0) {
+    return { ok: false, reason: 'invalid_count' };
+  }
+  TOTAL_ROUNDS = count;
+  ROUNDS = buildRounds(TOTAL_ROUNDS);
+  state.decisionsByRound = Array.from({ length: TOTAL_ROUNDS }, () => ({
+    safe: 0,
+    risk: 0,
+    entries: []
+  }));
+  broadcastStateToAll();
+  return { ok: true, totalRounds: TOTAL_ROUNDS };
+}
+
 // ---------- Socket handlers ----------
 io.on('connection', (socket) => {
   // Initial state push for any new connection
@@ -378,6 +406,14 @@ io.on('connection', (socket) => {
     }
     resetGame();
     ack && ack({ ok: true });
+  });
+
+  socket.on('presenter_set_rounds', ({ count }, ack) => {
+    if (!state.presenterSockets.has(socket.id)) {
+      ack && ack({ ok: false, reason: 'not_authorized' });
+      return;
+    }
+    ack && ack(setRoundCount(count));
   });
 
   socket.on('disconnect', () => {
