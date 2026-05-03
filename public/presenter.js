@@ -403,13 +403,11 @@ function drawBalanceChart(d) {
   const xCoord = step => padding.left + (step / N) * plotW;
   const yCoord = b => padding.top + plotH - ((b - yMin) / (yMax - yMin)) * plotH;
 
-  // Y grid + labels
+  // Y grid + labels — fixed 20€ steps
   ctx.font = '12px system-ui, sans-serif';
-  const ySteps = 5;
-  for (let i = 0; i <= ySteps; i++) {
-    const v = yMin + (yMax - yMin) * (i / ySteps);
+  for (let v = yMin; v <= yMax; v += 20) {
     const y = yCoord(v);
-    ctx.strokeStyle = i === 0 ? '#475569' : '#1e293b';
+    ctx.strokeStyle = v === yMin ? '#475569' : '#1e293b';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(padding.left, y);
@@ -417,7 +415,7 @@ function drawBalanceChart(d) {
     ctx.stroke();
     ctx.fillStyle = '#94a3b8';
     ctx.textAlign = 'right';
-    ctx.fillText(Math.round(v) + ' €', padding.left - 8, y + 4);
+    ctx.fillText(v + ' €', padding.left - 8, y + 4);
   }
 
   // 100€ baseline (start) — dashed
