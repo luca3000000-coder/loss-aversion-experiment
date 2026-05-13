@@ -273,21 +273,17 @@ function renderFinal(d) {
 
   const diff = gainRiskPct - lossRiskPct;
   const diffEl = document.getElementById('diff-value');
-  const diffHint = document.getElementById('diff-hint');
   if (gainTotal === 0 && lossTotal === 0) {
     diffEl.textContent = '–';
-    diffHint.textContent = 'Noch keine Daten';
+    diffEl.className = 'stat-big';
   } else {
     diffEl.textContent = (diff > 0 ? '+' : '') + diff + ' %-Pkt.';
     if (diff > 0) {
       diffEl.className = 'stat-big diff-negative';
-      diffHint.textContent = 'Risikofreudiger im Gewinnbereich (atypisch)';
     } else if (diff < 0) {
       diffEl.className = 'stat-big diff-positive';
-      diffHint.textContent = 'Risikofreudiger im Verlustbereich → Loss Aversion!';
     } else {
       diffEl.className = 'stat-big';
-      diffHint.textContent = 'Kein Unterschied erkennbar';
     }
   }
 
@@ -318,26 +314,17 @@ function renderFinal(d) {
 
   const balanceDiff = belowPct - abovePct;
   const balDiffEl = document.getElementById('balance-diff-value');
-  const balDiffHint = document.getElementById('balance-diff-hint');
-  if (belowTotal === 0 && aboveTotal === 0) {
+  if (belowTotal === 0 || aboveTotal === 0) {
     balDiffEl.textContent = '–';
     balDiffEl.className = 'stat-big';
-    balDiffHint.textContent = 'Noch keine Daten unter/über 100 €';
-  } else if (belowTotal === 0 || aboveTotal === 0) {
-    balDiffEl.textContent = '–';
-    balDiffEl.className = 'stat-big';
-    balDiffHint.textContent = 'Eine Zone hat noch keine Entscheidungen';
   } else {
     balDiffEl.textContent = (balanceDiff > 0 ? '+' : '') + balanceDiff + ' %-Pkt.';
     if (balanceDiff > 0) {
       balDiffEl.className = 'stat-big diff-positive';
-      balDiffHint.textContent = 'Mehr Risiko in Verlustzone → Break-Even-Effekt';
     } else if (balanceDiff < 0) {
       balDiffEl.className = 'stat-big diff-negative';
-      balDiffHint.textContent = 'Mehr Risiko in Gewinnzone → House-Money-Effekt';
     } else {
       balDiffEl.className = 'stat-big';
-      balDiffHint.textContent = 'Kein Unterschied';
     }
   }
 
