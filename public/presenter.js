@@ -271,7 +271,7 @@ function renderFinal(d) {
   document.getElementById('loss-risk-count').textContent = loss.risk;
   document.getElementById('loss-total').textContent = lossTotal;
 
-  const diff = lossRiskPct - gainRiskPct;
+  const diff = gainRiskPct - lossRiskPct;
   const diffEl = document.getElementById('diff-value');
   const diffHint = document.getElementById('diff-hint');
   if (gainTotal === 0 && lossTotal === 0) {
@@ -280,11 +280,11 @@ function renderFinal(d) {
   } else {
     diffEl.textContent = (diff > 0 ? '+' : '') + diff + ' %-Pkt.';
     if (diff > 0) {
-      diffEl.className = 'stat-big diff-positive';
-      diffHint.textContent = 'Risikofreudiger im Verlustbereich → Loss Aversion!';
-    } else if (diff < 0) {
       diffEl.className = 'stat-big diff-negative';
       diffHint.textContent = 'Risikofreudiger im Gewinnbereich (atypisch)';
+    } else if (diff < 0) {
+      diffEl.className = 'stat-big diff-positive';
+      diffHint.textContent = 'Risikofreudiger im Verlustbereich → Loss Aversion!';
     } else {
       diffEl.className = 'stat-big';
       diffHint.textContent = 'Kein Unterschied erkennbar';
@@ -343,7 +343,6 @@ function renderFinal(d) {
 
   drawBalanceChart(d);
   drawChart(d);
-  renderInterpretation(gainRiskPct, lossRiskPct, diff);
   renderLeaderboard(d);
 }
 
